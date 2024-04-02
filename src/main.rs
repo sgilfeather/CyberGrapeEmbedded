@@ -113,19 +113,19 @@ fn main() -> ! {
     let mut pos1: usize = 0;
 
     loop {
-        // uart0
-        //     .read_full_blocking(&mut raw_buf0)
-        //     .map_err(|e| {
-        //         let e_str = match e {
-        //             ReadErrorType::Break => "break",
-        //             ReadErrorType::Framing => "framing",
-        //             ReadErrorType::Overrun => "overrun",
-        //             ReadErrorType::Parity => "parity",
-        //         };
-        //         error!("uart0 {}", e_str);
-        //         None::<&str>
-        //     })
-        //     .expect("should not fail");
+        uart0
+            .read_full_blocking(&mut raw_buf0)
+            .map_err(|e| {
+                let e_str = match e {
+                    ReadErrorType::Break => "break",
+                    ReadErrorType::Framing => "framing",
+                    ReadErrorType::Overrun => "overrun",
+                    ReadErrorType::Parity => "parity",
+                };
+                error!("uart0 {}", e_str);
+                None::<&str>
+            })
+            .expect("should not fail");
 
         uart1
             .read_full_blocking(&mut raw_buf1)
@@ -141,29 +141,29 @@ fn main() -> ! {
             })
             .expect("should not fail");
 
-        // match raw_buf0[0] {
-        //     b'\n' => {
-        //         println!("{}", str::from_utf8(&read_buf0).unwrap());
-        //         pos0 = 0;
-        //     }
-        //     c => {
-        //         read_buf0[pos0] = c;
-        //         pos0 += 1;
-        //     }
-        // }
+        match raw_buf0[0] {
+            b'\n' => {
+                println!("{}", str::from_utf8(&read_buf0).unwrap());
+                pos0 = 0;
+            }
+            c => {
+                read_buf0[pos0] = c;
+                pos0 += 1;
+            }
+        }
 
-        // match raw_buf1[0] {
-        //     b'\n' => {
-        //         println!("{}", str::from_utf8(&read_buf1).unwrap());
-        //         pos1 = 0;
-        //     }
-        //     c => {
-        //         read_buf1[pos1] = c;
-        //         pos1 += 1;
-        //     }
-        // }
+        match raw_buf1[0] {
+            b'\n' => {
+                println!("{}", str::from_utf8(&read_buf1).unwrap());
+                pos1 = 0;
+            }
+            c => {
+                read_buf1[pos1] = c;
+                pos1 += 1;
+            }
+        }
 
-        // println!("buf0: {}", str::from_utf8(&raw_buf0).unwrap());
+        println!("buf0: {}", str::from_utf8(&raw_buf0).unwrap());
         println!("buf1: {}", str::from_utf8(&raw_buf1).unwrap());
     }
 }
