@@ -1,6 +1,6 @@
 [package]
 edition = "2021"
-name = "rp2040-project-template"
+name = "cyber_grape_embedded"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 
@@ -17,12 +17,15 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 rp-pico = "0.8"
 panic-halt = "0.2.0"
 
-# but you can use any BSP. Uncomment this to use the pro_micro_rp2040 BSP instead
-# sparkfun-pro-micro-rp2040 = "0.7"
+# Maybe we can get an allocator working
+talc = { version = "4.3.1", features = ["lock_api"], default-features = false }
+lock_api = "0.4.11"
+nb = { version = "1.1.0", features = ["defmt-0-3"] }
 
-# If you're not going to use a Board Support Package you'll need these:
-# rp2040-hal = { version="0.9", features=["rt", "critical-section-impl"] }
-# rp2040-boot2 = "0.3"
+
+[lib]
+name = "cg"
+
 
 # cargo build/run
 [profile.dev]
