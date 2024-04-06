@@ -34,6 +34,8 @@ use talc::{ClaimOnOom, Span, Talc, Talck};
 extern crate alloc;
 use alloc::vec::Vec;
 
+use alloc::format;
+
 // Some stack space to store our heap
 static mut ARENA: [u8; 16384] = [0; 16384];
 
@@ -85,9 +87,9 @@ fn main() -> ! {
 
     // Instantiate our two UART channels, then split them so that we have a
     // two readers and a writer (we throw away the uart0 writer)
-    let (uart0, _) = hal::uart::UartPeripheral::new(
+    let (uart0, writer) = hal::uart::UartPeripheral::new(
         pac.UART0,
-        (pins.gpio12.into_function(), pins.gpio13.into_function()),
+        (pins.gpio16.into_function(), pins.gpio13.into_function()),
         &mut pac.RESETS,
     )
     .enable(
@@ -97,7 +99,7 @@ fn main() -> ! {
     .unwrap()
     .split();
 
-    let (uart1, writer) = hal::uart::UartPeripheral::new(
+    let (uart1, _) = hal::uart::UartPeripheral::new(
         pac.UART1,
         (pins.gpio8.into_function(), pins.gpio9.into_function()),
         &mut pac.RESETS,
@@ -118,12 +120,28 @@ fn main() -> ! {
     let mut read_buf0: Vec<u8> = Vec::new();
     let mut read_buf1: Vec<u8> = Vec::new();
 
-    loop {
-        let read0 = perform_read(&mut raw_buf0, &uart0).expect("Read from UART0 should succeed");
-        handle_read(read0, &raw_buf0, &mut read_buf0, &writer);
+    // Complete messages are transferred here for writing. The writer will
+    // write chunks of this buffer to UART as often as it can without
+    // blocking
+    let mut to_write: Vec<u8> = Vec::new();
 
-        let read1 = perform_read(&mut raw_buf1, &uart1).expect("Read from UART1 should succeed");
-        handle_read(read1, &raw_buf1, &mut read_buf1, &writer);
+    loop {
+        let read0 = perform_read(&mut raw_buf0, &uart0)
+            .map_err(|e| error!("{}", format!("{:?}", e).as_str()))
+            .unwrap_or(0);
+        handle_read(read0, &raw_buf0, &mut read_buf0, &writer, &mut to_write);
+
+        let read1 = perform_read(&mut raw_buf1, &uart1)
+            .map_err(|e| error!("{}", format!("{:?}", e).as_str()))
+            .unwrap_or(0);
+        handle_read(read1, &raw_buf1, &mut read_buf1, &writer, &mut to_write);
+
+        if to_write.len() > 0 {
+            let rest = writer
+                .write_raw(&to_write)
+                .expect("Write to UART0 should succeed");
+            to_write = rest.to_vec();
+        }
     }
 }
 
@@ -147,8 +165,13 @@ where
 
 /// Handles processing a read from the UART, appending to the read buffer and
 /// flushing that buffer out to the writer if it sees a newline character
-fn handle_read<D, P>(read_len: usize, raw_buf: &[u8], read_buf: &mut Vec<u8>, writer: &Writer<D, P>)
-where
+fn handle_read<D, P>(
+    read_len: usize,
+    raw_buf: &[u8],
+    read_buf: &mut Vec<u8>,
+    _writer: &Writer<D, P>,
+    to_write: &mut Vec<u8>,
+) where
     D: UartDevice,
     P: ValidUartPinout<D>,
 {
@@ -156,9 +179,11 @@ where
         read_buf.push(c);
 
         if c == b'\n' {
-            let _rest = writer
-                .write_raw(read_buf)
-                .expect("Write to UART1 should succeed");
+            // We tend to get a lot of empty lines (\r\n) so we only write
+            // out if we have more than two characters
+            if read_buf.len() > 2 {
+                to_write.extend_from_slice(&read_buf);
+            }
             read_buf.clear();
         }
     }
