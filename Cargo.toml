@@ -13,8 +13,11 @@ defmt = "0.3"
 defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
-# We're using a Pico by default on this template
-rp-pico = "0.8"
+# Yes having this pull directly from Git is ugly but it makes all the errors
+# print out without a big hassle since they implemeneted Debug/Format on all
+# the errors pretty recently. If they push a release to crates.io we can go
+# back to that.
+rp-pico = { git = "https://github.com/rp-rs/rp-hal-boards.git", rev = "3fdd613" } # We're using a Pico by default on this template
 panic-halt = "0.2.0"
 
 # Maybe we can get an allocator working
